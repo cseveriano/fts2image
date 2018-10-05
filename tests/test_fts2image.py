@@ -7,6 +7,7 @@
 import unittest
 
 from fts2image import fts2image
+from fts2image import FuzzyImageCNN
 
 
 class TestFts2image(unittest.TestCase):

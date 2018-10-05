@@ -4,7 +4,7 @@ import pandas as pd
 from keras.models import Sequential
 from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
 
-class FTSImage:
+class FuzzyImageCNN:
 
     def __init__(self, fuzzysets, nlags=1, steps=1):
         self.nlags = nlags
@@ -12,18 +12,17 @@ class FTSImage:
         self.fuzzysets = fuzzysets
 
     def convert2image(self, sequence):
-
         image = np.zeros(shape=(len(sequence), len(self.fuzzysets)))
 
         for i, lag in enumerate(sequence):
             for j, fs in  enumerate(self.fuzzysets):
-                image[i, j] = fs.membership(lag)
+                image[i, j] = self.fuzzysets[fs].membership(lag)
 
         return image
 
     # convert series to supervised learning
     def series_to_supervised(self, series, dropnan=True):
-        n_vars = 1 if type(series) is list else series.shape[1]
+        n_vars = 1
         df = pd.DataFrame(series)
         cols, names = list(), list()
         # input sequence (t-n, ... t-1)
@@ -46,28 +45,49 @@ class FTSImage:
         return agg
 
     def design_network(self):
-
+        #insert proper configs
         self.model = Sequential()
-        self.model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
+        self.model.add(Conv2D(32, (3, 3), padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
         self.model.add(MaxPooling2D((2, 2)))
-        self.model.add(Conv2D(64, (3, 3), activation='relu'))
+        self.model.add(Conv2D(64, (3, 3), padding="same", activation='relu'))
         self.model.add(MaxPooling2D((2, 2)))
-        self.model.add(Conv2D(64, (3, 3), activation='relu'))
+  #      self.model.add(Conv2D(64, (3, 3), padding="same", activation='relu'))
         self.model.add(Flatten())
         self.model.add(Dense(64, activation='relu'))
-        self.model.add(Dense(1))
-        self.model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+        self.model.add(Dense(1, activation='linear'))
+        self.model.compile(loss='mse', optimizer='adam')
 
     def fit(self, train_data, epochs=5, batch_size=64):
-        sup_data = self.series_to_supervised(self, train_data)
+        sup_data = self.series_to_supervised(train_data)
 
-        X = sup_data.iloc[:, :self.nlags].values
-        y = sup_data.iloc[:,-self.steps].values
+        X = np.array(sup_data.iloc[:, :self.nlags].values)
+        y = np.array(sup_data.iloc[:,-self.steps].values)
 
         X_images = []
 
         for sample in X:
             X_images.append(self.convert2image(sample))
 
+        # reshape input values according to network architecture
+        X_images = np.array(X_images)
+        X_images = X_images.reshape(len(X_images), self.nlags, len(self.fuzzysets), 1)
+
+
         self.design_network()
-        self.model.fit(X_images, y, epochs, batch_size)
+        self.model.fit(X_images, y, epochs)
+
+    def predict(self, test_data):
+        sup_data = self.series_to_supervised(test_data)
+        X = np.array(sup_data.iloc[:, :self.nlags].values)
+        y = np.array(sup_data.iloc[:,-self.steps].values)
+
+        X_images = []
+
+        for sample in X:
+            X_images.append(self.convert2image(sample))
+
+        # reshape input values according to network architecture
+        X_images = np.array(X_images)
+        X_images = X_images.reshape(len(X_images), self.nlags, len(self.fuzzysets), 1)
+
+        return self.model.predict(X_images)
