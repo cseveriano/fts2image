@@ -38,12 +38,22 @@ max_raw = train_df.max()
 train_norm_df = normalize(train_df)
 test_norm_df = normalize(test_df)
 
-npartitions = 50
-nlags = 4
-steps = 1
-fuzzy_sets = Grid.GridPartitioner(data=train_norm_df.values, npart=npartitions).sets
-model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=nlags, steps=steps)
-model.fit(train_norm_df,epochs=50, batch_size=64)
+_conv_layers = 2
+_dense_layer_neurons = 1024
+_dense_layers = 3
+_epochs = 30
+_filters = 8
+_kernel_size = 2
+_npartitions = 50
+_order = 8
+_pooling_size = 2
+
+fuzzy_sets = Grid.GridPartitioner(data=train_df.values, npart=_npartitions).sets
+model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=_order, steps=1,
+                                    conv_layers=_conv_layers, dense_layers=_dense_layers,
+                                    dense_layer_neurons=_dense_layer_neurons, filters=_filters,
+                                    kernel_size=_kernel_size, pooling_size=_pooling_size)
+model.fit(train_df, epochs=_epochs, batch_size=64)
 
 forecast = model.predict(test_norm_df)
 

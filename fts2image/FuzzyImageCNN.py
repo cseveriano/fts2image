@@ -1,15 +1,23 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from keras.models import Sequential
 from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
 
 class FuzzyImageCNN:
 
-    def __init__(self, fuzzysets, nlags=1, steps=1):
+    def __init__(self, fuzzysets, nlags=1, steps=1,
+                 conv_layers=1, dense_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64):
         self.nlags = nlags
         self.steps = steps
         self.fuzzysets = fuzzysets
+        self.conv_layers = conv_layers
+        self.dense_layers = dense_layers
+        self.filters = filters
+        self.kernel_size = [kernel_size,kernel_size]
+        self.dense_layer_neurons = dense_layer_neurons
+        self.pooling = (pooling_size, pooling_size)
 
     def convert2image(self, sequence):
         image = np.zeros(shape=(len(sequence), len(self.fuzzysets)))
@@ -45,19 +53,27 @@ class FuzzyImageCNN:
         return agg
 
     def design_network(self):
-        #insert proper configs
+        # insert proper configs
         self.model = Sequential()
-        self.model.add(Conv2D(32, (3, 3), padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
-        self.model.add(MaxPooling2D((2, 2)))
-        self.model.add(Conv2D(64, (3, 3), padding="same", activation='relu'))
-        self.model.add(MaxPooling2D((2, 2)))
-  #      self.model.add(Conv2D(64, (3, 3), padding="same", activation='relu'))
+
+        for i in np.arange(self.conv_layers):
+            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
+            self.model.add(MaxPooling2D(self.pooling))
+
         self.model.add(Flatten())
-        self.model.add(Dense(64, activation='relu'))
+
+        for i in np.arange(self.dense_layers):
+            self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+
         self.model.add(Dense(1, activation='linear'))
         self.model.compile(loss='mse', optimizer='adam')
 
-    def fit(self, train_data, epochs=5, batch_size=64):
+    @staticmethod
+    def plotImage(image):
+        plt.imshow(image, cmap="gray")
+        plt.show()
+
+    def fit(self, train_data, epochs=5, plot_images=False):
         sup_data = self.series_to_supervised(train_data)
 
         X = np.array(sup_data.iloc[:, :self.nlags].values)
@@ -67,6 +83,10 @@ class FuzzyImageCNN:
 
         for sample in X:
             X_images.append(self.convert2image(sample))
+
+        if plot_images:
+            for image in X_images:
+                FuzzyImageCNN.plotImage(image)
 
         # reshape input values according to network architecture
         X_images = np.array(X_images)
