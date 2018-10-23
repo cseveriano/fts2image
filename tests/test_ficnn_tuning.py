@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 
+import traceback
+
 import math
 from sklearn.metrics import mean_squared_error
 from pyFTS.partitioners import Grid, Entropy, Util as pUtil
@@ -55,7 +57,7 @@ def fuzzy_cnn_forecast(train_df, test_df, params):
             filters = params['filters'], kernel_size = params['kernel_size'],
             pooling_size = params['pooling_size'], dense_layer_neurons = params['dense_layer_neurons'])
 
-    model.fit(train_df, epochs=params['epochs'], batch_size=64)
+    model.fit(train_df, epochs=params['epochs'])
 
     forecast = model.predict(test_df)
 
@@ -69,8 +71,10 @@ def cnn_objective(params):
         forecast = denormalize(forecast, min_raw, max_raw)
         forecast.append(0) ## para manter o mesmo tamanho dos demais
         rmse = calculate_rmse(test_df[target_station], forecast, params['order'], 1)
-    except:
+    except Exception:
+        traceback.print_exc()
         rmse = 1000
+
     return {'loss': rmse, 'status': STATUS_OK}
 
 
@@ -112,7 +116,8 @@ space = {'npartitions': hp.choice('npartitions', [50, 100, 150, 200]),
         'filters': hp.choice('filters',  [2, 4, 8, 16, 32, 64]),
         'kernel_size': hp.choice('kernel_size', list(np.arange(2,5))),
         'pooling_size': hp.choice('pooling_size', list(np.arange(2, 5))),
-        'dense_layer_neurons': hp.choice('dense_layer_neurons', [32, 64, 128, 256, 512, 768, 1024, 1280])}
+        'dense_layer_neurons': hp.choice('dense_layer_neurons', [32, 64, 128, 256, 512, 768, 1024, 1280]),
+        'dropout': hp.choice('dropout', list(np.arange(0.2, 0.5, 0.1)))}
 
 
 trials = pickle.load(open("tuning_results.pkl", "rb"))
