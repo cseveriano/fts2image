@@ -2,9 +2,15 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pkl
 
 # C extensions
 *.so
+
+# Directories
+.DS_Store
+.idea/
+data/
 
 # Distribution / packaging
 .Python
