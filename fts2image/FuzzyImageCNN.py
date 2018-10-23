@@ -3,12 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from keras.models import Sequential
-from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
+from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D, Dropout
 
 class FuzzyImageCNN:
 
     def __init__(self, fuzzysets, nlags=1, steps=1,
-                 conv_layers=1, dense_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64):
+                 conv_layers=1, dense_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0):
         self.nlags = nlags
         self.steps = steps
         self.fuzzysets = fuzzysets
@@ -18,6 +18,7 @@ class FuzzyImageCNN:
         self.kernel_size = [kernel_size,kernel_size]
         self.dense_layer_neurons = dense_layer_neurons
         self.pooling = (pooling_size, pooling_size)
+        self.dropout = dropout
 
     def convert2image(self, sequence):
         image = np.zeros(shape=(len(sequence), len(self.fuzzysets)))
@@ -61,6 +62,9 @@ class FuzzyImageCNN:
             self.model.add(MaxPooling2D(self.pooling))
 
         self.model.add(Flatten())
+
+        if self.dropout > 0:
+            self.model.add(Dropout(self.dropout))
 
         for i in np.arange(self.dense_layers):
             self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
