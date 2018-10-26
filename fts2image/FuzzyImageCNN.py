@@ -84,27 +84,30 @@ class FuzzyImageCNN:
 
 
     def design_network(self):
-        # insert proper configs
+        print("Custom V3")
 
         from keras import layers
 
         input_img = layers.Input(shape=(self.image_dim, self.image_dim, 1))
 
-        branch_a = layers.Conv2D(128, 1, activation='relu', strides=2)(input_img)
+        branch_a = layers.Conv2D(self.filters, 1, activation='relu', strides=2)(input_img)
 
-        branch_b = layers.Conv2D(128, 1, activation='relu')(input_img)
-        branch_b = layers.Conv2D(128, 3, activation='relu', strides=2, padding="same")(branch_b)
+        branch_b = layers.Conv2D(self.filters, 1, activation='relu')(input_img)
+        branch_b = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', strides=2, padding="same")(branch_b)
 
         branch_c = layers.AveragePooling2D(3, strides=2, padding="same")(input_img)
-        branch_c = layers.Conv2D(128, 3, activation='relu', padding="same")(branch_c)
+        branch_c = layers.Conv2D(self.filters, self.kernel_size, activation='relu', padding="same")(branch_c)
 
-        branch_d = layers.Conv2D(128, 1, activation='relu')(input_img)
-        branch_d = layers.Conv2D(128, 3, activation='relu', padding="same")(branch_d)
-        branch_d = layers.Conv2D(128, 3, activation='relu', strides=2, padding="same")(branch_d)
+        branch_d = layers.Conv2D(self.filters, 1, activation='relu')(input_img)
+        branch_d = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', padding="same")(branch_d)
+        branch_d = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', strides=2, padding="same")(branch_d)
 
         output = layers.concatenate([branch_a, branch_b, branch_c, branch_d], axis=-1)
 
         output = Flatten()(output)
+
+        for i in np.arange(self.dense_layers):
+            output = Dense(self.dense_layer_neurons, activation='relu')(output)
 
         out = Dense(1, activation='linear')(output)
 
