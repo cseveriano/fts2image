@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from keras.models import Sequential
-from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D, Dropout
+from keras.models import Sequential, Model
+from keras.layers import Conv2D, Flatten, Dense, MaxPooling2D, Dropout, concatenate
+
+from scipy.ndimage import interpolation
 
 class FuzzyImageCNN:
 
@@ -19,6 +21,7 @@ class FuzzyImageCNN:
         self.dense_layer_neurons = dense_layer_neurons
         self.pooling = (pooling_size, pooling_size)
         self.dropout = dropout
+        self.image_dim = 256
 
     def convert2image(self, sequence):
         image = np.zeros(shape=(len(sequence), len(self.fuzzysets)))
@@ -27,10 +30,16 @@ class FuzzyImageCNN:
             for j, fs in  enumerate(self.fuzzysets):
                 image[i, j] = self.fuzzysets[fs].membership(lag)
 
-        return image
+        # Resize image to be suitable as input for CNN
+        resize_dim = self.image_dim
+        scale = (float(resize_dim) / float(len(sequence)), float(resize_dim) / float(len(self.fuzzysets)))
+        res_image = interpolation.zoom(image, scale, mode='nearest')
+
+        return res_image
 
     # convert series to supervised learning
     def series_to_supervised(self, series, dropnan=True):
+        # TODO: is this code adapted to multivariate series?
         n_vars = 1
         df = pd.DataFrame(series)
         cols, names = list(), list()
@@ -53,24 +62,55 @@ class FuzzyImageCNN:
             agg.dropna(inplace=True)
         return agg
 
+    # def design_network(self):
+    #     # TODO: design GoogleNet parameters
+    #     # insert proper configs
+    #     self.model = Sequential()
+    #
+    #     for i in np.arange(self.conv_layers):
+    #         self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
+    #         self.model.add(MaxPooling2D(self.pooling))
+    #
+    #     self.model.add(Flatten())
+    #
+    #     if self.dropout > 0:
+    #         self.model.add(Dropout(self.dropout))
+    #
+    #     for i in np.arange(self.dense_layers):
+    #         self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+    #
+    #     self.model.add(Dense(1, activation='linear'))
+    #     self.model.compile(loss='mse', optimizer='adam')
+
+
     def design_network(self):
         # insert proper configs
-        self.model = Sequential()
 
-        for i in np.arange(self.conv_layers):
-            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
-            self.model.add(MaxPooling2D(self.pooling))
+        from keras import layers
 
-        self.model.add(Flatten())
+        input_img = layers.Input(shape=(self.image_dim, self.image_dim, 1))
 
-        if self.dropout > 0:
-            self.model.add(Dropout(self.dropout))
+        branch_a = layers.Conv2D(128, 1, activation='relu', strides=2)(input_img)
 
-        for i in np.arange(self.dense_layers):
-            self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+        branch_b = layers.Conv2D(128, 1, activation='relu')(input_img)
+        branch_b = layers.Conv2D(128, 3, activation='relu', strides=2, padding="same")(branch_b)
 
-        self.model.add(Dense(1, activation='linear'))
+        branch_c = layers.AveragePooling2D(3, strides=2, padding="same")(input_img)
+        branch_c = layers.Conv2D(128, 3, activation='relu', padding="same")(branch_c)
+
+        branch_d = layers.Conv2D(128, 1, activation='relu')(input_img)
+        branch_d = layers.Conv2D(128, 3, activation='relu', padding="same")(branch_d)
+        branch_d = layers.Conv2D(128, 3, activation='relu', strides=2, padding="same")(branch_d)
+
+        output = layers.concatenate([branch_a, branch_b, branch_c, branch_d], axis=3-1)
+
+        output = Flatten()(output)
+
+        out = Dense(1, activation='linear')(output)
+
+        self.model = Model(inputs=input_img, outputs=out)
         self.model.compile(loss='mse', optimizer='adam')
+
 
     @staticmethod
     def plotImage(image):
@@ -94,7 +134,7 @@ class FuzzyImageCNN:
 
         # reshape input values according to network architecture
         X_images = np.array(X_images)
-        X_images = X_images.reshape(len(X_images), self.nlags, len(self.fuzzysets), 1)
+        X_images = X_images.reshape(len(X_images), self.image_dim, self.image_dim, 1)
 
 
         self.design_network()
@@ -112,6 +152,6 @@ class FuzzyImageCNN:
 
         # reshape input values according to network architecture
         X_images = np.array(X_images)
-        X_images = X_images.reshape(len(X_images), self.nlags, len(self.fuzzysets), 1)
+        X_images = X_images.reshape(len(X_images), self.image_dim, self.image_dim, 1)
 
         return self.model.predict(X_images)
