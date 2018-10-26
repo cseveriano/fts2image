@@ -102,7 +102,7 @@ class FuzzyImageCNN:
         branch_d = layers.Conv2D(128, 3, activation='relu', padding="same")(branch_d)
         branch_d = layers.Conv2D(128, 3, activation='relu', strides=2, padding="same")(branch_d)
 
-        output = layers.concatenate([branch_a, branch_b, branch_c, branch_d], axis=3-1)
+        output = layers.concatenate([branch_a, branch_b, branch_c, branch_d], axis=-1)
 
         output = Flatten()(output)
 
