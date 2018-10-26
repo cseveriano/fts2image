@@ -68,7 +68,7 @@ class FuzzyImageCNN:
     #     self.model = Sequential()
     #
     #     for i in np.arange(self.conv_layers):
-    #         self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, len(self.fuzzysets), 1)))
+    #         self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.image_dim, self.image_dim, 1)))
     #         self.model.add(MaxPooling2D(self.pooling))
     #
     #     self.model.add(Flatten())
@@ -86,19 +86,29 @@ class FuzzyImageCNN:
     def design_network(self):
         print("Custom V3")
 
+
         from keras import layers
+
 
         input_img = layers.Input(shape=(self.image_dim, self.image_dim, 1))
 
-        branch_a = layers.Conv2D(self.filters, 1, activation='relu', strides=2)(input_img)
+        seq = layers.Conv2D(self.filters, 1, activation='relu', strides=2, padding="same")(input_img)
+        seq = layers.MaxPooling2D(16, 3, activation='relu', strides=2, padding="same")(seq)
 
-        branch_b = layers.Conv2D(self.filters, 1, activation='relu')(input_img)
+        seq = layers.Conv2D(self.filters, self.kernel_size, activation='relu', strides=2, padding="same")(seq)
+        seq = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', strides=2, padding="same")(seq)
+        seq = layers.MaxPooling2D(16, 3, activation='relu', strides=2, padding="same")(seq)
+
+
+        branch_a = layers.Conv2D(self.filters, 1, activation='relu', strides=2)(seq)
+
+        branch_b = layers.Conv2D(self.filters, 1, activation='relu')(seq)
         branch_b = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', strides=2, padding="same")(branch_b)
 
-        branch_c = layers.AveragePooling2D(3, strides=2, padding="same")(input_img)
+        branch_c = layers.AveragePooling2D(3, strides=2, padding="same")(seq)
         branch_c = layers.Conv2D(self.filters, self.kernel_size, activation='relu', padding="same")(branch_c)
 
-        branch_d = layers.Conv2D(self.filters, 1, activation='relu')(input_img)
+        branch_d = layers.Conv2D(self.filters, 1, activation='relu')(seq)
         branch_d = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', padding="same")(branch_d)
         branch_d = layers.Conv2D(self.filters * 2, self.kernel_size, activation='relu', strides=2, padding="same")(branch_d)
 
