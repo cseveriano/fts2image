@@ -40,6 +40,9 @@ def split_data(df, interval):
 #Set target and input variables
 target_station = 'DHHL_3'
 
+#All neighbor stations with residual correlation greater than .90
+neighbor_stations_90 = ['DHHL_3',  'DHHL_4','DHHL_5','DHHL_10','DHHL_11','DHHL_9','DHHL_2', 'DHHL_6','DHHL_7','DHHL_8']
+
 df = pd.read_pickle(os.path.join(os.getcwd(), "../data/oahu/df_oahu.pkl"))
 
 #Normalize Data
@@ -61,23 +64,23 @@ interval = ((df.index >= '2010-06') & (df.index < '2010-07'))
 
 
 def fuzzy_cnn_forecast(train_df, test_df):
-    _conv_layers = 2
-    _dense_layer_neurons = 1024
-    _dense_layers = 3
-    _epochs = 30
+    _conv_layers = 3
+    _dense_layer_neurons = 1280
+    _dense_layers = 5
+    _epochs = 50
     _filters = 8
-    _kernel_size = 2
-    _npartitions = 50
-    _order = 8
-    _pooling_size = 2
-    _dropout = 0
+    _kernel_size = 3
+    _npartitions = 100
+    _order = 100
+    _pooling_size = 4
+    _dropout = 0.30
 
-    fuzzy_sets = Grid.GridPartitioner(data=train_df.values, npart=_npartitions).sets
+    fuzzy_sets = Grid.GridPartitioner(data=train_df[target_station].values, npart=_npartitions).sets
     model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=_order, steps=1,
                                         conv_layers=_conv_layers, dense_layers=_dense_layers,
                                         dense_layer_neurons=_dense_layer_neurons, filters=_filters,
                                         kernel_size=_kernel_size, pooling_size=_pooling_size, dropout=_dropout)
-    model.fit(train_df, epochs=_epochs)
+    model.fit(train_df, epochs=_epochs, plot_images=True)
 
     forecast = model.predict(test_df)
 
@@ -85,10 +88,10 @@ def fuzzy_cnn_forecast(train_df, test_df):
 
 steps = 1
 
-forecast = fuzzy_cnn_forecast(norm_train_df[target_station], norm_test_df[target_station])
+forecast = fuzzy_cnn_forecast(norm_train_df[neighbor_stations_90], norm_test_df[neighbor_stations_90])
 forecast = denormalize(forecast, min_raw, max_raw)
 
-_order = 8
+_order = 4
 
 forecast.append(0) ## para manter o mesmo tamanho dos demais
 rmse = calculate_rmse(test_df[target_station], forecast, _order, steps)
