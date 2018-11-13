@@ -71,7 +71,7 @@ def fuzzy_cnn_forecast(train_df, test_df):
     _filters = 8
     _kernel_size = 3
     _npartitions = 100
-    _order = 100
+    _order = 4
     _pooling_size = 4
     _dropout = 0.30
 
@@ -80,7 +80,7 @@ def fuzzy_cnn_forecast(train_df, test_df):
                                         conv_layers=_conv_layers, dense_layers=_dense_layers,
                                         dense_layer_neurons=_dense_layer_neurons, filters=_filters,
                                         kernel_size=_kernel_size, pooling_size=_pooling_size, dropout=_dropout)
-    model.fit(train_df, epochs=_epochs, plot_images=True)
+    model.fit(train_df, epochs=_epochs, plot_images=False)
 
     forecast = model.predict(test_df)
 

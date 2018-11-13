@@ -55,7 +55,7 @@ def fuzzy_cnn_forecast(train_df, test_df, params):
     model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=params['order'], steps=1,
             conv_layers = params['conv_layers'], dense_layers = params['dense_layers'],
             filters = params['filters'], kernel_size = params['kernel_size'],
-            pooling_size = params['pooling_size'], dense_layer_neurons = params['dense_layer_neurons'])
+            pooling_size = params['pooling_size'], dense_layer_neurons = params['dense_layer_neurons'], dropout=params['dropout'])
 
     model.fit(train_df, epochs=params['epochs'])
 
@@ -67,7 +67,7 @@ def fuzzy_cnn_forecast(train_df, test_df, params):
 def cnn_objective(params):
     print(params)
     try:
-        forecast = fuzzy_cnn_forecast(norm_train_df, norm_test_df[target_station], params)
+        forecast = fuzzy_cnn_forecast(norm_train_df[neighbor_stations_90], norm_test_df[neighbor_stations_90], params)
         forecast = denormalize(forecast, min_raw, max_raw)
         forecast.append(0) ## para manter o mesmo tamanho dos demais
         rmse = calculate_rmse(test_df[target_station], forecast, params['order'], 1)
@@ -113,7 +113,7 @@ interval = ((df.index >= '2010-06') & (df.index < '2010-07'))
 
 ###### OPTIMIZATION ROUTINES ###########
 space = {'npartitions': hp.choice('npartitions', [50, 100, 150, 200]),
-        'order': hp.choice('order', list(np.arange(4,10))),
+        'order': hp.choice('order', [4,48,96,144]),
         'epochs': hp.choice('epochs', [30, 50, 100]),
         'conv_layers' : hp.choice('conv_layers', list(np.arange(2,6))),
         'dense_layers': hp.choice('dense_layers', list(np.arange(2, 6))),
