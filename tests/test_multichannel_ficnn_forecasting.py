@@ -63,7 +63,7 @@ def fuzzy_cnn_forecast(train_df, test_df):
     _conv_layers = 3
     _dense_layer_neurons = 1280
     _dense_layers = 5
-    _epochs = 50
+    _epochs = 100
     _filters = 8
     _kernel_size = 3
     _npartitions = 100
@@ -96,5 +96,5 @@ print("RMSE: ", rmse)
 
 plt.figure()
 plt.plot(test_df[output].iloc[_order:600].values)
-plt.plot(forecast[:(600+_order)])
+plt.plot(forecast[:(600-_order)])
 plt.show()

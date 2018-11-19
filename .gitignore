@@ -10,7 +10,6 @@ __pycache__/
 # Directories
 .DS_Store
 .idea/
-data/
 
 # Distribution / packaging
 .Python

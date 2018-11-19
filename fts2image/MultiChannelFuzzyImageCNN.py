@@ -61,41 +61,56 @@ class MultiChannelFuzzyImageCNN:
         return agg
 
 
+    # def design_network(self):
+    #     # insert proper configs
+    #     self.model = Sequential()
+    #
+    #     for i in np.arange(self.conv_layers):
+    #         self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+    #         self.model.add(MaxPooling2D(self.pooling, padding="same"))
+    #
+    #     self.model.add(Flatten())
+    #
+    #     if self.dropout > 0:
+    #         self.model.add(Dropout(self.dropout))
+    #
+    #     for i in np.arange(self.dense_layers):
+    #         self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+    #
+    #     self.model.add(Dense(1, activation='linear'))
+    #     self.model.compile(loss='mse', optimizer='adam')
+
     def design_network(self):
         # insert proper configs
         self.model = Sequential()
 
-        for i in np.arange(self.conv_layers):
-            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
-            self.model.add(MaxPooling2D(self.pooling, padding="same"))
+        self.model.add(Conv2D(32, (2,2), padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+        self.model.add(MaxPooling2D((2,2), padding="same", strides=2))
+
+        self.model.add(Conv2D(64, (2,2), padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+        self.model.add(MaxPooling2D((2,2), padding="same", strides=2))
 
         self.model.add(Flatten())
+        self.model.add(Dense(4096, activation='relu'))
+        self.model.add(Dense(1024, activation='relu'))
 
-        if self.dropout > 0:
-            self.model.add(Dropout(self.dropout))
+       # self.model.add(Dropout(0.4))
 
-        for i in np.arange(self.dense_layers):
-            self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+        self.model.add(Dense(50, activation='relu'))
+        self.model.add(Dense(40, activation='relu'))
+        self.model.add(Dense(5, activation='relu'))
 
         self.model.add(Dense(1, activation='linear'))
         self.model.compile(loss='mse', optimizer='adam')
-
 
     @staticmethod
     def plotImage(image):
         plt.imshow(image, cmap="gray")
         plt.show()
 
-    def fit(self, train_data, epochs=5, plot_images=False):
+    def fit(self, train_data, epochs=20, plot_images=False):
 
         X_images = self.create_images(train_data)
-
-        ## TODO:
-        # Criar imagem one-hot - OK
-        # Definir input shape para CNN
-        # Ajustar funcao de predicao
-        # Observar configuracao do paper Hossein
-        # Se performance fit estiver ruim, testar com dataframe
 
         if plot_images:
             for image in X_images:
