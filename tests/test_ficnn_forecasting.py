@@ -64,23 +64,23 @@ interval = ((df.index >= '2010-06') & (df.index < '2010-07'))
 
 
 def fuzzy_cnn_forecast(train_df, test_df):
-    _conv_layers = 3
-    _dense_layer_neurons = 1280
-    _dense_layers = 5
-    _epochs = 50
+    _conv_layers = 2
+    _dense_layer_neurons = [48, 4]
+    _batch_size = 100
+    _epochs = 100
     _filters = 8
     _kernel_size = 3
     _npartitions = 100
     _order = 4
     _pooling_size = 4
-    _dropout = 0.30
+    _dropout = 0.10
 
     fuzzy_sets = Grid.GridPartitioner(data=train_df[target_station].values, npart=_npartitions).sets
     model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=_order, steps=1,
-                                        conv_layers=_conv_layers, dense_layers=_dense_layers,
+                                        conv_layers=_conv_layers,
                                         dense_layer_neurons=_dense_layer_neurons, filters=_filters,
                                         kernel_size=_kernel_size, pooling_size=_pooling_size, dropout=_dropout)
-    model.fit(train_df, epochs=_epochs, plot_images=False)
+    model.fit(train_df, batch_size=_batch_size, epochs=_epochs, plot_images=False)
 
     forecast = model.predict(test_df)
 
@@ -99,5 +99,5 @@ print("RMSE: ", rmse)
 
 plt.figure()
 plt.plot(test_df.iloc[_order:600].values)
-plt.plot(forecast[:(600+_order)])
+plt.plot(forecast[:(600-_order)])
 plt.show()

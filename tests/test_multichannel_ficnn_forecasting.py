@@ -83,7 +83,7 @@ def fuzzy_cnn_forecast(train_df, test_df):
     return forecast
 
 steps = 1
-_order = 48
+_order = 4
 
 forecast = fuzzy_cnn_forecast(norm_train_df, norm_test_df)
 forecast = denormalize(forecast, df[output])

@@ -10,12 +10,11 @@ from scipy.ndimage import interpolation
 class FuzzyImageCNN:
 
     def __init__(self, fuzzysets, nlags=1, steps=1,
-                 conv_layers=1, dense_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0):
+                 conv_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0):
         self.nlags = nlags
         self.steps = steps
         self.fuzzysets = fuzzysets
         self.conv_layers = conv_layers
-        self.dense_layers = dense_layers
         self.filters = filters
         self.kernel_size = [kernel_size,kernel_size]
         self.dense_layer_neurons = dense_layer_neurons
@@ -60,16 +59,16 @@ class FuzzyImageCNN:
         self.model = Sequential()
 
         for i in np.arange(self.conv_layers):
-            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags * self.nfeatures, len(self.fuzzysets), 1)))
-            self.model.add(MaxPooling2D(self.pooling, padding="same"))
+            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, activation='relu', input_shape=(self.nlags * self.nfeatures, len(self.fuzzysets), 1)))
+            self.model.add(MaxPooling2D(self.pooling))
 
         self.model.add(Flatten())
 
         if self.dropout > 0:
             self.model.add(Dropout(self.dropout))
 
-        for i in np.arange(self.dense_layers):
-            self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+        for neurons in self.dense_layer_neurons:
+            self.model.add(Dense(neurons, activation='relu'))
 
         self.model.add(Dense(1, activation='linear'))
         self.model.compile(loss='mse', optimizer='adam')
@@ -80,7 +79,7 @@ class FuzzyImageCNN:
         plt.imshow(image, cmap="gray")
         plt.show()
 
-    def fit(self, train_data, epochs=5, plot_images=False):
+    def fit(self, train_data, batch_size=10, epochs=1, plot_images=False):
         sup_data = self.series_to_supervised(train_data,  n_in=self.nlags, n_out=self.steps)
         self.nfeatures = train_data.shape[1]
 
@@ -102,7 +101,7 @@ class FuzzyImageCNN:
 
 
         self.design_network()
-        self.model.fit(X_images, y, epochs)
+        self.model.fit(X_images, y, batch_size=batch_size, epochs=epochs)
 
     def predict(self, test_data):
         sup_data = self.series_to_supervised(test_data, n_in=self.nlags, n_out=self.steps)
