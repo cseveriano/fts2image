@@ -10,18 +10,18 @@ from scipy.ndimage import interpolation
 class MultiChannelFuzzyImageCNN:
 
     def __init__(self, raw_channels, fuzzy_sets, output, nlags=1, steps=1,
-                 conv_layers=1, dense_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0):
+                 conv_layers=1, filters=32, kernel_size=3, pooling_size=2, strides=1, dense_layer_neurons=None, dropout=0):
         self.nlags = nlags
         self.steps = steps
         self.raw_channels = raw_channels
         self.fuzzysets = fuzzy_sets
         self.output = output
         self.conv_layers = conv_layers
-        self.dense_layers = dense_layers
         self.filters = filters
         self.kernel_size = [kernel_size,kernel_size]
         self.dense_layer_neurons = dense_layer_neurons
         self.pooling = (pooling_size, pooling_size)
+        self.strides=(strides, strides)
         self.dropout = dropout
 
     def convert_to_one_hot_image(self, sequence):
@@ -66,29 +66,29 @@ class MultiChannelFuzzyImageCNN:
         self.model = Sequential()
 
         for i in np.arange(self.conv_layers):
-            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
-            self.model.add(MaxPooling2D(self.pooling, padding="same"))
+            self.model.add(Conv2D(self.filters * (i+1), self.kernel_size, strides=self.strides, activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+            self.model.add(MaxPooling2D(self.pooling))
 
         self.model.add(Flatten())
 
         if self.dropout > 0:
             self.model.add(Dropout(self.dropout))
 
-        for i in np.arange(self.dense_layers):
-            self.model.add(Dense(self.dense_layer_neurons, activation='relu'))
+        for neurons in self.dense_layer_neurons:
+            self.model.add(Dense(neurons, activation='relu'))
 
-        self.model.add(Dense(1, activation='linear'))
+        self.model.add(Dense(1, activation='sigmoid'))
         self.model.compile(loss='mse', optimizer='adam')
 
     # def design_network(self):
     #     # insert proper configs
     #     self.model = Sequential()
     #
-    #     self.model.add(Conv2D(32, (2,2), padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
-    #     self.model.add(MaxPooling2D((2,2), padding="same", strides=2))
+    #     self.model.add(Conv2D(32, (2,2), activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+    #     self.model.add(MaxPooling2D((2,2), strides=(2,2)))
     #
-    #     self.model.add(Conv2D(64, (2,2), padding="same", activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
-    #     self.model.add(MaxPooling2D((2,2), padding="same", strides=2))
+    #     self.model.add(Conv2D(64, (2,2), activation='relu', input_shape=(self.nlags, self.nlags, len(self.raw_channels)+1)))
+    #     self.model.add(MaxPooling2D((2,2), strides=(2,2)))
     #
     #     self.model.add(Flatten())
     #     self.model.add(Dense(4096, activation='relu'))
@@ -108,7 +108,7 @@ class MultiChannelFuzzyImageCNN:
         plt.imshow(image, cmap="gray")
         plt.show()
 
-    def fit(self, train_data, epochs=20, plot_images=False):
+    def fit(self, train_data, batch_size, epochs, plot_images=False):
 
         X_images = self.create_images(train_data)
 
@@ -121,7 +121,7 @@ class MultiChannelFuzzyImageCNN:
         y = self.create_output(train_data)
 
         self.design_network()
-        self.model.fit(X_images, y, epochs)
+        self.model.fit(X_images, y, batch_size=batch_size, epochs=epochs)
 
     def create_output(self, data):
         sup_data = self.series_to_supervised(data[self.output], lags=self.nlags, steps=self.steps)
