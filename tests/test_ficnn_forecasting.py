@@ -66,14 +66,14 @@ interval = ((df.index >= '2010-06') & (df.index < '2010-07'))
 def fuzzy_cnn_forecast(train_df, test_df):
     _conv_layers = 2
     _dense_layer_neurons = [48, 4]
-    _batch_size = 100
+    _batch_size = 20
     _epochs = 100
     _filters = 8
     _kernel_size = 3
     _npartitions = 100
     _order = 4
     _pooling_size = 4
-    _dropout = 0.10
+    _dropout = 0
 
     fuzzy_sets = Grid.GridPartitioner(data=train_df[target_station].values, npart=_npartitions).sets
     model = FuzzyImageCNN.FuzzyImageCNN(fuzzy_sets, nlags=_order, steps=1,
