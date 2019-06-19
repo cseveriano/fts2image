@@ -103,7 +103,7 @@ class FuzzyImageCNN:
 
         self.design_network()
 
-        if not debug:
+        if not self.debug:
             _verbose = 0
         self.model.fit(X_images, y, batch_size=batch_size, epochs=epochs, verbose=_verbose)
 
