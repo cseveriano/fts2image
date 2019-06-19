@@ -10,7 +10,7 @@ from scipy.ndimage import interpolation
 class FuzzyImageCNN:
 
     def __init__(self, fuzzysets, nlags=1, steps=1,
-                 conv_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0):
+                 conv_layers=1, filters=32, kernel_size=3, pooling_size=2, dense_layer_neurons=64, dropout=0, debug=False):
         self.nlags = nlags
         self.steps = steps
         self.fuzzysets = fuzzysets
@@ -20,6 +20,7 @@ class FuzzyImageCNN:
         self.dense_layer_neurons = dense_layer_neurons
         self.pooling = (pooling_size, pooling_size)
         self.dropout = dropout
+        self.debug = debug
 
     def convert2image(self, sequence):
         image = np.zeros(shape=(len(sequence), len(self.fuzzysets)))
@@ -101,7 +102,10 @@ class FuzzyImageCNN:
 
 
         self.design_network()
-        self.model.fit(X_images, y, batch_size=batch_size, epochs=epochs)
+
+        if not debug:
+            _verbose = 0
+        self.model.fit(X_images, y, batch_size=batch_size, epochs=epochs, verbose=_verbose)
 
     def predict(self, test_data):
         sup_data = self.series_to_supervised(test_data, n_in=self.nlags, n_out=self.steps)
